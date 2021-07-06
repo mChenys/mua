@@ -52,7 +52,8 @@ public class EditFragment extends BaseEditorFragment implements View.OnClickList
     @Override
     public void initView() {
         super.initView();
-        rootPath = Environment.getExternalStorageDirectory().toString() + "/" + appName + "/";
+        File root = FileUtils.getFilesDir(context, "mk", true);
+        rootPath = root + "/" + appName + "/";
         if (fileContent != null) {
             contentInput.setText(fileContent);
         }

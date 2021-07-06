@@ -27,6 +27,7 @@ import android.view.View;
 import android.widget.RelativeLayout;
 import android.widget.Toast;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -42,7 +43,7 @@ public class FileListFragment extends BaseFragment {
     @BindView(R.id.empty_list) RelativeLayout emptyList;
 
     @BindString(R.string.app_name) String appName;
-    private String root = Environment.getExternalStorageDirectory().toString();
+
     private String rootPath;
 
     private FilesAdapter adapter;
@@ -72,6 +73,7 @@ public class FileListFragment extends BaseFragment {
     }
 
     public void initVar() {
+        File root = FileUtils.getFilesDir(context, "mk", true);
         rootPath = root + "/" + appName + "/";
         sharedPreferences = PreferenceManager.getDefaultSharedPreferences(context);
     }

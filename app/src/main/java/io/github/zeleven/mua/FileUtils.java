@@ -1,6 +1,7 @@
 package io.github.zeleven.mua;
 
 import android.content.Context;
+import android.os.Environment;
 import android.util.Log;
 import android.widget.Toast;
 
@@ -249,5 +250,28 @@ public class FileUtils {
             e.printStackTrace();
         }
         return new Date(attr.creationTime().toMillis());
+    }
+
+    /**
+     * 获取files目录
+     *
+     * @param context
+     * @param dir      files下的子目录
+     * @param external 是否是外部存储的files
+     * @return
+     */
+    public static File getFilesDir(Context context, String dir, boolean external) {
+        if (null != context) {
+            File filesDir = null;
+            if (external && Environment.getExternalStorageState().equals(Environment.MEDIA_MOUNTED)) {
+                filesDir = new File(context.getExternalFilesDir(null), dir);
+            } else {
+                filesDir = new File(context.getFilesDir(), dir);
+            }
+            if (!filesDir.exists())
+                filesDir.mkdirs();
+            return filesDir;
+        }
+        return null;
     }
 }

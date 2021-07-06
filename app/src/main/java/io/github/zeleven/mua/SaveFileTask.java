@@ -6,6 +6,9 @@ import android.os.Handler;
 import android.text.TextUtils;
 import android.widget.Toast;
 
+/**
+ * 保存文件的task
+ */
 public class SaveFileTask extends AsyncTask<Void, Void, Boolean> {
     private Context context;
     private String filePath;
