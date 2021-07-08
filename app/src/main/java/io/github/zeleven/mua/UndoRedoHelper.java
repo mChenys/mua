@@ -5,10 +5,14 @@ import android.text.Editable;
 import android.text.Selection;
 import android.text.TextWatcher;
 import android.text.style.UnderlineSpan;
+import android.util.Log;
 import android.widget.TextView;
 
 import java.util.LinkedList;
 
+/**
+ * 撤销操作帮助类
+ */
 public class UndoRedoHelper {
     /**
      * Is undo/redo being performed? This member signals if an undo/redo
@@ -19,6 +23,7 @@ public class UndoRedoHelper {
 
     /**
      * The edit history.
+     * 维护历史编辑记录
      */
     private EditHistory mEditHistory;
 
@@ -79,19 +84,25 @@ public class UndoRedoHelper {
     }
 
     /**
+     * 撤销
      * Perform undo.
      */
     public void undo() {
+        // 从历史记录中获取前一个编辑项
         EditItem edit = mEditHistory.getPrevious();
         if (edit == null) {
             return;
         }
 
         Editable text = mTextView.getEditableText();
+        // 编辑项的开始位置
         int start = edit.mmStart;
+        // 编辑项的结束位置
         int end = start + (edit.mmAfter != null ? edit.mmAfter.length() : 0);
 
+        // 标记当前正在操作撤销,避免添加到历史记录栈中
         mIsUndoOrRedo = true;
+        // 恢复之前的操作
         text.replace(start, end, edit.mmBefore);
         mIsUndoOrRedo = false;
 
@@ -100,7 +111,7 @@ public class UndoRedoHelper {
         for (Object o : text.getSpans(0, text.length(), UnderlineSpan.class)) {
             text.removeSpan(o);
         }
-
+        // 重置光标位置到上次位置
         Selection.setSelection(text, edit.mmBefore == null ? start
                 : (start + edit.mmBefore.length()));
     }
@@ -113,9 +124,11 @@ public class UndoRedoHelper {
     }
 
     /**
+     * 重做
      * Perform redo.
      */
     public void redo() {
+        // 获取下一个编辑项操作恢复
         EditItem edit = mEditHistory.getNext();
         if (edit == null) {
             return;
@@ -126,6 +139,7 @@ public class UndoRedoHelper {
         int end = start + (edit.mmBefore != null ? edit.mmBefore.length() : 0);
 
         mIsUndoOrRedo = true;
+        // 添加重新编辑的内容
         text.replace(start, end, edit.mmAfter);
         mIsUndoOrRedo = false;
 
@@ -134,7 +148,7 @@ public class UndoRedoHelper {
         for (Object o : text.getSpans(0, text.length(), UnderlineSpan.class)) {
             text.removeSpan(o);
         }
-
+        // 更新光标位置
         Selection.setSelection(text, edit.mmAfter == null ? start
                 : (start + edit.mmAfter.length()));
     }
@@ -226,11 +240,13 @@ public class UndoRedoHelper {
     // =================================================================== //
 
     /**
+     * 历史编辑记录
      * Keeps track of all the edit history of a text.
      */
     private final class EditHistory {
 
         /**
+         * 用来标记当调用getNext方法后需要被恢复的EditItem的position,如果没有调用getPrevious方法,那么position=mmHistory.size()
          * The position from which an EditItem will be retrieved when getNext()
          * is called. If getPrevious() has not been called, this has the same
          * value as mmHistory.size().
@@ -238,16 +254,19 @@ public class UndoRedoHelper {
         private int mmPosition = 0;
 
         /**
+         * 最大历史集大小
          * Maximum undo history size.
          */
         private int mmMaxHistorySize = -1;
 
         /**
+         * 历史编辑记录集合
          * The list of edits in chronological order.
          */
         private final LinkedList<EditItem> mmHistory = new LinkedList<EditItem>();
 
         /**
+         * 清空历史集
          * Clear history.
          */
         private void clear() {
@@ -256,6 +275,7 @@ public class UndoRedoHelper {
         }
 
         /**
+         * 在当前position处添加EditItem,如果当前position之后已经有历史记录,那么可以直接删掉
          * Adds a new edit operation to the history at the current position. If
          * executed after a call to getPrevious() removes all the future history
          * (elements with positions >= current history position).
@@ -268,11 +288,13 @@ public class UndoRedoHelper {
             mmPosition++;
 
             if (mmMaxHistorySize >= 0) {
+                // 如果有设置最大历史记录,那么需要判断是否越界,越界则从最开头开始删除
                 trimHistory();
             }
         }
 
         /**
+         * 设置最大历史集大小
          * Set the maximum history size. If size is negative, then history size
          * is only limited by the device memory.
          */
@@ -284,6 +306,7 @@ public class UndoRedoHelper {
         }
 
         /**
+         * 针对有设置最大历史记录的情况,控制历史集的大小
          * Trim history when it exceeds max history size.
          */
         private void trimHistory() {
@@ -298,6 +321,7 @@ public class UndoRedoHelper {
         }
 
         /**
+         * 从历史集中获取当前位置的前一条编辑记录
          * Traverses the history backward by one position, returns and item at
          * that position.
          */
@@ -310,6 +334,7 @@ public class UndoRedoHelper {
         }
 
         /**
+         * 从历史集中获取当前位置的下一条编辑记录
          * Traverses the history forward by one position, returns and item at
          * that position.
          */
@@ -319,18 +344,20 @@ public class UndoRedoHelper {
             }
 
             EditItem item = mmHistory.get(mmPosition);
+            // 取完下一条,当前位置++以便下一次撤销操作可以--
             mmPosition++;
             return item;
         }
     }
 
     /**
+     * 单个编辑单元
      * Represents the changes performed by a single edit operation.
      */
     private final class EditItem {
-        private final int mmStart;
-        private final CharSequence mmBefore;
-        private final CharSequence mmAfter;
+        private final int mmStart; // 编辑后的开始位置
+        private final CharSequence mmBefore; // 编辑前的内容
+        private final CharSequence mmAfter; // 编辑后新增的内容
 
         /**
          * Constructs EditItem of a modification that was applied at position
@@ -361,20 +388,25 @@ public class UndoRedoHelper {
         public void beforeTextChanged(CharSequence s, int start, int count,
                                       int after) {
             if (mIsUndoOrRedo) {
+                // 来自撤销或者重做,不处理
                 return;
             }
 
             mBeforeChange = s.subSequence(start, start + count);
+            Log.e("cys", "mBeforeChange:"+mBeforeChange+" start:"+start+" count:"+count+" after:"+after+" s:"+s);
         }
 
         public void onTextChanged(CharSequence s, int start, int before,
                                   int count) {
             if (mIsUndoOrRedo) {
+                // 来自撤销或者重做,不处理
                 return;
             }
 
             mAfterChange = s.subSequence(start, start + count);
             mEditHistory.add(new EditItem(start, mBeforeChange, mAfterChange));
+
+            Log.e("cys", ">>>mAfterChange:"+mAfterChange+" start:"+start+" count:"+count+" before:"+before+" s:"+s);
         }
 
         public void afterTextChanged(Editable s) {

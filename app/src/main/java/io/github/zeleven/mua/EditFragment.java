@@ -24,6 +24,9 @@ import java.io.File;
 import butterknife.BindString;
 import butterknife.BindView;
 
+/**
+ * 编辑页面
+ */
 public class EditFragment extends BaseEditorFragment implements View.OnClickListener {
     @BindView(R.id.content_input) EditText contentInput;
     @BindString(R.string.app_name) String appName;

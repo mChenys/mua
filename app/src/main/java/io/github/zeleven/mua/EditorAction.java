@@ -35,27 +35,35 @@ public class EditorAction {
     }
 
     /**
+     * 插入标题
      * Insert markdown heading markup, if there was nothing input, insert "#" markup to 0 position.
      * Otherwise, insert the markup at position which after line break.
      */
     public void heading() {
         int start = editText.getSelectionStart();
         String textContent = editText.getText().toString();
+        // 在当前光标向前查找最后一个换行符
         int lineBreakPos = textContent.lastIndexOf("\n", start);
         int insertPos;
         if (lineBreakPos == -1) {
+            // 位于首行,将#插入行首
             insertPos = 0;
         } else {
+            // 光标位于换行符前,将#插入下一行
             insertPos = lineBreakPos + 1;
         }
         editText.getText().insert(insertPos, "#");
         String afterInsert = editText.getText().toString().substring(insertPos + 1);
+        // 在#号后添加空格
         if (!afterInsert.startsWith("#") && !afterInsert.startsWith(" ")) {
             editText.getText().insert(insertPos + 1, " ");
         }
+        // 重新定位光标
+        editText.setSelection(editText.getText().length());
     }
 
     /**
+     * 添加加粗
      * Add markdown bold markup.
      * If there was select something, add markup beside the selected text.
      * Otherwise, just add the markup and set the cursor position at the middle of markup.
@@ -63,16 +71,27 @@ public class EditorAction {
     public void bold() {
         int start = editText.getSelectionStart();
         int end = editText.getSelectionEnd();
+        if (start > 0) {
+            String before = editText.getText().toString().substring(0, start);
+            if (before.endsWith("*")) {
+                // 插入前已经存在*,加入空格
+                editText.getText().insert(start, " ");
+                start++;
+                end++;
+            }
+        }
         if (start == end) {
             editText.getText().insert(start, "****");
             editText.setSelection(start + 2);
         } else {
+            // 光标选中字后添加加粗
             editText.getText().insert(start, "**");
             editText.getText().insert(end + 2, "**");
         }
     }
 
     /**
+     * 添加斜体
      * Add markdown italic markup.
      * If there was select something, add markup beside the selected text.
      * Otherwise, just add the markup and set cursor position at the middle of markup.
@@ -81,16 +100,25 @@ public class EditorAction {
         // Add markdown italic markup
         int start = editText.getSelectionStart();
         int end = editText.getSelectionEnd();
+        String before = editText.getText().toString().substring(0, start);
+        if (before.endsWith("*")) {
+            // 插入前已经存在*,加入空格
+            editText.getText().insert(start, " ");
+            start++;
+            end++;
+        }
         if (start == end) {
             editText.getText().insert(start, "**");
             editText.setSelection(start + 1);
         } else {
+            // 光标选中字后添加斜体
             editText.getText().insert(start, "*");
             editText.getText().insert(end + 1, "*");
         }
     }
 
     /**
+     * 添加代码块
      * Add markdown code markup.
      * If there was select something, add markup beside the selected text.
      * Otherwise, open a dialog to input programming language name,
@@ -122,6 +150,7 @@ public class EditorAction {
                             String langName = langNameET.getText().toString();
                             int end = editText.getSelectionEnd();
                             editText.getText().insert(end, "\n```" + langName + "\n\n```\n");
+                            // 定位光标到代码开头处
                             editText.setSelection(end + 5 + langName.length());
                         }
                     });
@@ -133,21 +162,32 @@ public class EditorAction {
     }
 
     /**
+     * 添加引用
      * Add markdown block quote markup.
      */
     public void quote() {
         int start = editText.getSelectionStart();
         int end = editText.getSelectionEnd();
         if (start == end) {
-            editText.getText().insert(start, "> ");
-            editText.setSelection(start + 2);
+            if (start == 0) {
+                // 首行
+                editText.getText().insert(start, "> ");
+                editText.setSelection(start + 2);
+            } else {
+                // 非首行,另起一行
+                editText.getText().insert(start, "\n> ");
+                editText.setSelection(start + 3);
+            }
+
         } else {
-            editText.getText().insert(start, "\n\n> ");
-            editText.setSelection(end + 4);
+            // 光标选中字后添加引用
+            editText.getText().insert(start, "\n> ");
+            editText.setSelection(end + 3);
         }
     }
 
     /**
+     * 添加有序列表
      * Add markdown ordered list markup.
      */
     public void orderedList() {
@@ -156,6 +196,7 @@ public class EditorAction {
     }
 
     /**
+     * 添加无序列表
      * Add markdown unordered list markup.
      */
     public void unorderedList() {
@@ -164,6 +205,7 @@ public class EditorAction {
     }
 
     /**
+     * 添加链接
      * Insert markdown link markup.
      */
     public void insertLink() {
@@ -177,6 +219,7 @@ public class EditorAction {
         final int start = editText.getSelectionStart();
         final int end = editText.getSelectionEnd();
         if (start < end) {
+            // 将选中的块作为标题
             String selectedContent = editText.getText().subSequence(start, end).toString();
             linkDisplayTextET.setText(selectedContent);
             linkContentET.requestFocus();
@@ -192,38 +235,47 @@ public class EditorAction {
 
         linkDialog.setPositiveButton(R.string.dialog_btn_insert,
                 new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialog, int which) {
-                String linkDisplayText = linkDisplayTextET.getText().toString();
-                String linkContent = linkContentET.getText().toString();
-                if (linkDisplayText.equals("")) {
-                    linkDisplayText = "Link";
-                }
-                String content = "[" + linkDisplayText + "]" + "(" + linkContent + ")";
-                if (start == end) {
-                    editText.getText().insert(start, content);
-                } else {
-                    editText.getText().replace(start, end, content);
-                }
-                if (linkContent.equals("")) {
-                    editText.setSelection(content.length() - 1);
-                }
-            }
-        });
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        String linkDisplayText = linkDisplayTextET.getText().toString();
+                        String linkContent = linkContentET.getText().toString();
+                        if (linkDisplayText.equals("")) {
+                            linkDisplayText = "Link";
+                        }
+                        String content = "[" + linkDisplayText + "]" + "(" + linkContent + ")";
+                        if (start == end) {
+                            editText.getText().insert(start, content);
+                        } else {
+                            editText.getText().replace(start, end, content);
+                        }
+                        if (linkContent.equals("")) {
+                            // 如果未填写链接,将光标定位到括号内
+                            editText.setSelection(start + content.length() - 1);
+                        }
+                    }
+                });
         linkDialog.show();
     }
 
     /**
+     * 添加图片
      * Insert markdown image markup.
+     *
      * @param displayText display text of image.
-     * @param imageUri the uri of image.
+     * @param imageUri    the uri of image.
      */
     public void insertImage(String displayText, String imageUri) {
         int start = editText.getSelectionStart();
-        editText.getText().insert(start, "\n\n![" + displayText + "](" + imageUri + ")\n\n");
+        String content = "\n\n![" + displayText + "](" + imageUri + ")\n\n";
+        editText.getText().insert(start, content);
+        if (imageUri.equals("")) {
+            // 如果未填写链接,将光标定位到括号内
+            editText.setSelection(start + content.length() - 3);
+        }
     }
 
     /**
+     * 撤销操作
      * Undo
      */
     public void undo() {
@@ -233,6 +285,7 @@ public class EditorAction {
     }
 
     /**
+     * 恢复撤销
      * Redo
      */
     public void redo() {
@@ -247,7 +300,6 @@ public class EditorAction {
 //    public void save() {
 //
 //    }
-
     public void update(String filePath) {
         FileUtils.saveContent(new File(filePath), editText.getText().toString());
     }
@@ -260,6 +312,7 @@ public class EditorAction {
 //    }
 
     /**
+     * 清空
      * Clear text in component.
      */
     public void clearAll() {
@@ -286,6 +339,7 @@ public class EditorAction {
     }
 
     /**
+     * 打开帮助文档
      * Opening docs fragment
      */
     public void checkDocs() {
@@ -297,6 +351,7 @@ public class EditorAction {
     }
 
     /**
+     * 统计字数
      * statistics dialog
      */
     public void statistics() {
@@ -319,7 +374,9 @@ public class EditorAction {
     }
 
     /**
+     * 切换键盘
      * Toggle keyboard according flag. If flag equals 0, hide or close keyboard. Otherwise, open.
+     *
      * @param flag A flag which indicate it should open keyboard or not.
      */
     public void toggleKeyboard(int flag) {
